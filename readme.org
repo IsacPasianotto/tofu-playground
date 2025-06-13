@@ -1,0 +1,17 @@
+#+title: OpenTOFU playground
+
+This is just a playground repository to learn how to use opentofu
+
+* How to start
+
+
+#+begin_src
+  tofu init
+  tofu apply
+#+end_src
+
+And to revert the process:
+
+#+begin_src
+  tofu destroy 
+#+end_src
