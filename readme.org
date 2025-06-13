@@ -4,6 +4,12 @@ This is just a playground repository to learn how to use opentofu
 
 * How to start
 
+Download the VM images with the script:
+
+#+begin_src
+  scripts/get_images.sh
+#+end_src
+
 
 #+begin_src
   tofu init
@@ -13,5 +19,5 @@ This is just a playground repository to learn how to use opentofu
 And to revert the process:
 
 #+begin_src
-  tofu destroy 
+  tofu destroy
 #+end_src
