@@ -38,3 +38,7 @@ terraform.rc
 
 # ignore the qemu qcow2 files for VM images
 *.qcow2
+
+# oepntofu specific file that are not included in terraform .gitignore template
+.tofurc
+.terraform.lock.hcl
