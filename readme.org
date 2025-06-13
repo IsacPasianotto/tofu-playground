@@ -4,12 +4,14 @@ This is just a playground repository to learn how to use opentofu
 
 * How to start
 
-Download the VM images with the script:
+- Download the VM images with the script:
 
 #+begin_src
   scripts/get_images.sh
 #+end_src
 
+
+- Add your key in the[[ terraform.tfvars]]  file:
 
 #+begin_src
   tofu init
