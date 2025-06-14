@@ -6,22 +6,113 @@ This is just a playground repository to learn how to use opentofu
 
 - Download the VM images with the script:
 
-#+begin_src
-  scripts/get_images_local.sh
+#+begin_src bash
+  scripts/get_images.sh
 #+end_src
 
 
-- Add your key in the [[terraform.tfvars][./terraform.tfvars]]  file:
+- Add your key in the[[ terraform.tfvars]]  file:
 
-#+begin_src
+#+begin_src bash
   tofu init
   tofu apply
 #+end_src
 
 And to revert the process:
 
-#+begin_src
+#+begin_src bash
   tofu destroy
 #+end_src
 
 
+
+* PROXMOX setup
+
+
+** On proxmox node:
+
+Install the required packages
+
+#+begin_src bash
+  apt install console-setup
+  apt install libguestfs-tools -y
+#+end_src
+
+
+Create a dedicated role that will be used by opentofu
+
+#+begin_src bash
+  pveum role add tofu -privs "Datastore.Allocate Datastore.AllocateSpace Datastore.Audit Pool.Allocate Sys.Audit Sys.Console Sys.Modify VM.Allocate VM.Audit VM.Clone VM.Config.CDROM VM.Config.Cloudinit VM.Config.CPU VM.Config.Disk VM.Config.HWType VM.Config.Memory VM.Config.Network VM.Config.Options VM.Console VM.Migrate VM.Monitor VM.PowerMgmt SDN.Use"
+#+end_src
+
+
+You can check that the role exists:
+
+#+begin_src bash
+  pveum role list
+#+end_src
+
+
+Now create a service account (user) that will be used for the deployment with the username and password your choiche
+
+#+begin_src bash
+  pveum user add <username>@pve --password <password>
+  pveum user list
+#+end_src
+
+
+Then assign the role to the user:
+
+#+begin_src bash
+ # pveum aclmod / -user <username>@pve -role <role_name>
+ pveum aclmod / -user tofu@pve -role tofu
+#+end_src
+
+
+Create a token that will be used to securely intterract between Proxmox and Opentofu
+
+#+begin_src bash
+  # pveum user token add <username>@pve <token_name> -expire 0 -privsep 0 -comment "<token_comment>"
+  pveum user token add tofu@pve tofutoken -expire 0 -privsep 0 -comment "<Token needed to authenticate the tofu user>"
+#+end_src
+
+*!BACKUP THE OUTPUT SOMEWHERE*
+
+And check that the modification was applied with:
+
+#+begin_src bash
+ pveum user token list tofu@pve
+#+end_src
+
+
+***  SETUP THE TEMPLATE
+
+
+In this preliminary step I will stuck with the example I found at [[https://do5.eu/blog/configure-proxmox-server-with-opentofu-for-vm-provisioning][This link]]
+
+#+begin_src bash
+  # always on the proxmox node
+  # TODO -> make a script to launch with ssh
+  cd /var/lib/vz/template/iso
+  wget https://cloud-images.ubuntu.com/releases/22.04/release/ubuntu-22.04-server-cloudimg-amd64.img
+  virt-customize -a ubuntu-22.04-server-cloudimg-amd64.img --install qemu-guest-agent
+  virt-customize -a ubuntu-22.04-server-cloudimg-amd64.img --root-password password:changeme
+  qm create 9999 --name "ubuntu.server.local" --memory 2048 --cores 2 --net0 virtio,bridge=vnet1
+  sudo sudo qm importdisk 9999 ubuntu-22.04-server-cloudimg-amd64.img local-lvm
+  qm set 9999 --tags "template,ubuntu"
+  qm set 9999 --scsihw virtio-scsi-pci --scsi0 local-lvm:vm-9999-disk-0
+  sudo qm set 9999 --boot c --bootdisk scsi0
+  sudo qm set 9999 --ide2 local:cloudinit
+  sudo qm set 9999 --serial0 socket --vga serial0
+  sudo qm set 9999 --agent enabled=1
+  sudo qm set 9999 --ipconfig0 ip=dhcp
+  sudo qm template 9999
+#+end_src
+
+**  On the local host
+
+#+begin_export bash
+eval `ssh-agent -s`
+ssh-add
+ssh-copy-id -i ~/.ssh/id_rsa.pub root@<proxmox_server_ip>
+#+end_export
