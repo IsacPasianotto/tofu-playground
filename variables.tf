@@ -1,21 +1,22 @@
-variable "ssh_key" {
-  description = "Public SSH key to inject into the VM"
-  type        = string
+variable "target" {
+  type = string
+  description = "Choose 'libvirt' or 'proxmox'"
+  default = "libvirt"
 }
 
 variable "vm_count" {
-  description = "Number of VMs to provision"
-  type        = number
-  default     = 1
+  type = number
+  description = "Number of VMs to create"
+  default = 2
 }
 
 variable "distro" {
-  description = "Distribution to use (alma, fedora, rocky)"
-  type        = string
-  default     = "alma"
+  type = string
+  description = "Linux distribution to use for the VMs among 'alma', 'fedora' and 'rocky'."
+  default = "alma"
+}
 
-  validation {
-    condition     = contains(["alma", "fedora", "rocky"], var.distro)
-    error_message = "Supported distros are: alma, fedora, rocky."
-  }
+variable "ssh_key" {
+  description = "SSH public key to use for VM access, required."
+  type = string
 }
