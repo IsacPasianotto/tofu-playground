@@ -1,103 +1,11 @@
-terraform {
-  required_providers {
-    local = {
-      source  = "hashicorp/local"
-      version = "~> 2.5"
-    }
-    libvirt = {
-      source  = "dmacvicar/libvirt"
-      version = "~> 0.8.3"
-    }
-  }
-}
-
-provider "libvirt" {
-  uri = "qemu:///system"
-}
-
-# TODO -> check this
-# Added there because variables.tf wasn't support variables like ${path.module}
 locals {
-  image_map = {
-    alma   = "${path.module}/images/AlmaLinux-Cloud-9_x86_64.qcow2"
-    fedora = "${path.module}/images/Fedora-Cloud-42_x86_64.qcow2"
-    rocky  = "${path.module}/images/Rocky-Cloud-10_x86_64.qcow2"
-  }
-
-  # Simple hostname prefix
-  vm_prefix = "${var.distro}-vm"
+  modulepath = "./modules/${var.target}"
 }
 
-# Create separate volumes for each VM
-resource "libvirt_volume" "vm_disk" {
-  count  = var.vm_count
-  name   = "${local.vm_prefix}-${count.index}.qcow2"
-  source = local.image_map[var.distro]
-  format = "qcow2"
-  pool   = "default"
-}
-
-# Cloud-init ISO
-resource "libvirt_cloudinit_disk" "cloudinit" {
-  count = var.vm_count
-  name  = "cloudinit-${count.index}.iso"
-
-  user_data = templatefile("${path.module}/cloud_init.cfg", {
-    ipaddr   = "192.168.32.${count.index + 10}"
-    ssh_key  = var.ssh_key
-    hostname = "${local.vm_prefix}-${count.index}"
-  })
-
-  pool = "default"
-}
-
-# Define the NAT network
-resource "libvirt_network" "tofu_devel" {
-  name      = "TOFU-devel"
-  mode      = "nat"
-  domain    = "tofu.local"
-  addresses = ["192.168.32.0/24"]
-  autostart = true
-
-  dhcp {
-    enabled = true
-  }
-
-  dns {
-    enabled = true
-  }
-}
-
-# Define each VM
-resource "libvirt_domain" "vm" {
-  count  = var.vm_count
-  name   = "${local.vm_prefix}-${count.index}"
-  memory = 1024
-  vcpu   = 1
-  arch   = "x86_64"
-  autostart = true
-
-  # Needed, otherwise alma and rocky will not boot and goes in kernel panic.
-  # See: https://blog.thetechcorner.sk/posts/Quick-fix-AlmaLinux9-cloud-init-kernel-panic/
-  cpu {
-    mode = "host-passthrough"
-  }
-
-  disk {
-    volume_id = libvirt_volume.vm_disk[count.index].id
-  }
-
-  network_interface {
-    network_name   = libvirt_network.tofu_devel.name
-    wait_for_lease = true
-    hostname       = "${local.vm_prefix}-${count.index}"
-    addresses      = ["192.168.32.${count.index + 10}"]
-  }
-
-  cloudinit = libvirt_cloudinit_disk.cloudinit[count.index].id
-}
-
-# Output the assigned IPs
-output "vm_ips" {
-  value = libvirt_domain.vm[*].network_interface[0].addresses
+module "target_provisioner" {
+  source = local.modulepath
+  # Pass all the variables to the module
+  vm_count     = var.vm_count
+  distro       = var.distro
+  ssh_key      = var.ssh_key
 }
