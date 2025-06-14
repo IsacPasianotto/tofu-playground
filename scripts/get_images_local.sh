@@ -16,26 +16,27 @@ pushd "$ROOT_DIR" > /dev/null
 
 mkdir -p images ; pushd images > /dev/null
 
-for IMAGE in "${IMAGES[@]}"; do
-    if [ ! -f "$IMAGE" ]; then
-        case "$IMAGE" in
-            "$FEDORA_IMAGE")
-                echo "Downloading Fedora image..."
-                wget -q "$FEDORA_URL" -O "$FEDORA_IMAGE"
-                ;;
-            "$ALMA_IMAGE")
-                echo "Downloading AlmaLinux image..."
-                wget -q "$ALMA_URL" -O "$ALMA_IMAGE"
-                ;;
-            "$ROCKY_IMAGE")
-                echo "Downloading Rocky Linux image..."
-                wget -q "$ROCKY_URL" -O "$ROCKY_IMAGE"
-                ;;
-        esac
-    else
-        echo "$IMAGE already exists, skipping download."
-    fi
-done
+# Fedora
+if [ ! -f "$FEDORA_IMAGE" ]; then
+    echo "Downloading Fedora image..."
+    wget -q "$FEDORA_URL" -O "$FEDORA_IMAGE"
+else
+    echo "$FEDORA_IMAGE already exists, skipping download."
+fi
+# Alma
+if [ ! -f "$ALMA_IMAGE" ]; then
+    echo "Downloading AlmaLinux image..."
+    wget -q "$ALMA_URL" -O "$ALMA_IMAGE"
+else
+    echo "$ALMA_IMAGE already exists, skipping download."
+fi
+# Rocky
+if [ ! -f "$ROCKY_IMAGE" ]; then
+    echo "Downloading Rocky Linux image..."
+    wget -q "$ROCKY_URL" -O "$ROCKY_IMAGE"
+else
+    echo "$ROCKY_IMAGE already exists, skipping download."
+fi
 
 # Returun to the start directory
 popd > /dev/null ; popd > /dev/null

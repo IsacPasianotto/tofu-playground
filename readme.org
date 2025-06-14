@@ -7,11 +7,11 @@ This is just a playground repository to learn how to use opentofu
 - Download the VM images with the script:
 
 #+begin_src
-  scripts/get_images.sh
+  scripts/get_images_local.sh
 #+end_src
 
 
-- Add your key in the[[ terraform.tfvars]]  file:
+- Add your key in the [[terraform.tfvars][./terraform.tfvars]]  file:
 
 #+begin_src
   tofu init
@@ -23,3 +23,5 @@ And to revert the process:
 #+begin_src
   tofu destroy
 #+end_src
+
+
