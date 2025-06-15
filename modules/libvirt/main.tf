@@ -42,7 +42,7 @@ resource "libvirt_cloudinit_disk" "cloudinit" {
   count = var.vm_count
   name  = "cloudinit-${count.index}.iso"
 
-  user_data = templatefile("${path.root}/cloud_init.cfg", {
+  user_data = templatefile("${path.root}/cloud_init/libvirt/cloud_init.cfg", {
     ipaddr   = "192.168.32.${count.index + 10}"
     ssh_key  = var.ssh_key
     hostname = "${local.vm_prefix}-${count.index}"
