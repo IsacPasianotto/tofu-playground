@@ -25,14 +25,15 @@ locals {
 resource "proxmox_virtual_environment_file" "cloud_user_config" {
   count         = var.vm_count
   content_type  = "snippets"
-  datastore_id  = "local"  # TODO - make this configurable
-  node_name     = "pve01"      # TODO - make this configurable
+  datastore_id  = var.proxmox_config_datastore_id
+  node_name     = var.proxmox_target_node_name
 
   source_raw {
     data = templatefile("${path.root}/cloud_init/proxmox/cloud_init.cfg", {
-      ipaddr   = "192.168.1.${count.index + 230}"  # TODO - make this configurable
+      ipaddr   = "${var.vm_subnet}.${var.vm_starting_ip + count.index}"
       ssh_key  = var.ssh_key
       hostname = "${local.vm_prefix}-${count.index}"
+      subnet   = var.vm_subnet
     })
     file_name = "${local.vm_prefix}-${count.index}-user_data.yml"
   }
@@ -42,49 +43,49 @@ resource "proxmox_virtual_environment_vm" "vm" {
   count        = var.vm_count
   name         = "${local.vm_prefix}-${count.index}"
   vm_id        = 200 + count.index
-  node_name    = "pve01"  # TODO - make this configurable
-  tags         = ["tofu", "devel"]  # TODO - make this configurable
+  node_name    = var.proxmox_target_node_name
+  tags         = var.proxmox_vm_tags
   started      = true
 
   clone {
-    vm_id = 8002  # TODO - make this configurable
+    vm_id = var.proxmox_template_id
   }
 
   cpu {
     type    = "host"
-    cores   = 1  # TODO - make this configurable
-    sockets = 1  # TODO - make this configurable
+    cores   = var.n_cores_per_vm
+    sockets = 1 var.proxmox_n_sockets_per_vm
   }
 
   memory {
-    dedicated = 1024  # TODO - make this configurable
+    dedicated = var.memory_per_vm
   }
 
   disk {
-    interface    = "scsi0"
-    size         = 10
-    datastore_id = "local-lvm"  # TODO - make this configurable
+    interface    = var.proxmox_vm_disk_interface
+    size         = var.vm_disk_size
+    datastore_id = var.proxmox_config_datastore_id
   }
 
   network_device {
-    bridge = "vmbr0"  # TODO - make this configurable
-    model  = "virtio"
+    bridge = var.proxmox_network_bridge_name
+    model  = var.proxmox_network_interface_model
   }
 
   initialization {
-    datastore_id = "local-lvm"  # TODO - make this configurable
+    datastore_id = var.proxmox_config_datastore_id
     interface     = "ide2"
 
     user_data_file_id = proxmox_virtual_environment_file.cloud_user_config[count.index].id
 
     ip_config {
       ipv4 {
-        address = "192.168.1.${count.index + 230}/24"  # TODO - make this configurable
+        address = "${var.vm_subnet}.${var.vm_starting_ip + count.index}/24"
       }
     }
 
     dns {
-      domain = "tofu.local"  # TODO - make this configurable
+      domain = var.network_domain
     }
   }
 

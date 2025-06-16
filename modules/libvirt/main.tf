@@ -43,9 +43,10 @@ resource "libvirt_cloudinit_disk" "cloudinit" {
   name  = "cloudinit-${count.index}.iso"
 
   user_data = templatefile("${path.root}/cloud_init/libvirt/cloud_init.cfg", {
-    ipaddr   = "192.168.32.${count.index + 10}"
+    ipaddr   = "${var.vm_subnet}.${var.vm_starting_ip + count.index}"
     ssh_key  = var.ssh_key
     hostname = "${local.vm_prefix}-${count.index}"
+    subnet   = var.vm_subnet
   })
 
   pool = "default"
@@ -55,8 +56,8 @@ resource "libvirt_cloudinit_disk" "cloudinit" {
 resource "libvirt_network" "tofu_devel" {
   name      = "TOFU-devel"
   mode      = "nat"
-  domain    = "tofu.local"
-  addresses = ["192.168.100.0/24"]
+  domain    = var.network_domain
+  addresses = ["${var.vm_subnet}.0/24"]
   autostart = true
 
   dhcp {
@@ -72,8 +73,8 @@ resource "libvirt_network" "tofu_devel" {
 resource "libvirt_domain" "vm" {
   count  = var.vm_count
   name   = "${local.vm_prefix}-${count.index}"
-  memory = 1024
-  vcpu   = 1
+  memory = var.memory_per_vm
+  vcpu   = var.n_cores_per_vm
   arch   = "x86_64"
   autostart = true
 
@@ -91,8 +92,7 @@ resource "libvirt_domain" "vm" {
     network_name   = libvirt_network.tofu_devel.name
     wait_for_lease = true
     hostname       = "${local.vm_prefix}-${count.index}"
-    addresses      = ["192.168.100.${count.index + 10}"]
+    addresses      = ["${var.vm_subnet}.${var.vm_starting_ip + count.index}"]
   }
-
   cloudinit = libvirt_cloudinit_disk.cloudinit[count.index].id
 }
